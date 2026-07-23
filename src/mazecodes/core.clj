@@ -1,93 +1,52 @@
 (ns mazecodes.core
+  "Encode/decode Maze of Galious 'passwords' (save codes)"
   (:require [clojure.string :as str]))
 
 (def cipher* "F3RU72G4X5BKN90PQTHVE6OMWAJ18DSILYCZ    !")
 
 (def enc-cipher (into {} (map-indexed (fn [idx ch] [(- idx 3) ch]) cipher*)))
-(def dec-cipher (into {} (map-indexed (fn [idx ch] [ch (- idx 3)]) cipher*)))
+(def dec-cipher (into {} (map (juxt val key)) enc-cipher))
 
 (def checksum-cipher
-  {\0 1 \1 2 \2 3 \3 4 \4 5 \5 6 \6 7 \7 8 \8 9 \9 10 \A 11 \B 12 \C 13 \D 14 \E 15 \F 16 \G 17 \H 18 \I 19 \J 20 \K 21 \L 22 \M 23 \N 24 \O 25 \P 26 \Q 27 \R 28 \S 29 \T 30 \U 31 \V 32 \W 33 \X 34 \Y 35 \Z 36})
+  {\0 1 \1 2 \2 3 \3 4 \4 5 \5 6 \6 7 \7 8 \8 9 \9 10
+   \A 11 \B 12 \C 13 \D 14 \E 15 \F 16 \G 17 \H 18
+   \I 19 \J 20 \K 21 \L 22 \M 23 \N 24 \O 25 \P 26
+   \Q 27 \R 28 \S 29 \T 30 \U 31 \V 32 \W 33 \X 34
+   \Y 35 \Z 36})
 
 (def item-names
-  [:arrows
-   :ceramic-arrows
-   :rolling-fire
-   :fire
-   :mines
-   :magnifying-glass
-   :cross
-   :great-key
-   :necklace
-   :crown
-   :helmet
-   :oar
-   :shoes
-   :doll
-   :robe
-   :bell
-   :halo
-   :candle
-   :armor
-   :carpet
-   :helm
-   :lamp
-   :vase
-   :pendant
-   :earrings
-   :bracelet
-   :ring
-   :bible
-   :harp
-   :triangle
-   :trumpet-shell
-   :pitcher
-   :saber
-   :dagger
-   :feather
-   :bronze-shield
-   :bread-and-water
-   :salt
-   :silver-shield
-   :golden-shield])
+  [:arrows :ceramic-arrows :rolling-fire :fire :mines :magnifying-glass
+   ;; These are placeholder for the world-items, setting these bits in the code
+   ;; will make them show up in your inventory even when in the castle.
+   :_1 :_2 :_3 :_4
+   :cross :great-key
+   :necklace :crown :helmet :oar :shoes :doll :robe :bell :halo :candle
+   :armor :carpet :helm :lamp :vase :pendant :earrings :bracelet :ring :bible
+   :harp :triangle :trumpet-shell :pitcher :saber :dagger :feather
+   :bronze-shield :bread-and-water :salt :silver-shield :golden-shield])
+
+(def world-item-names
+  [:rod :cape :water :map])
 
 (defn code->segments [code]
-  (reduce
-   (fn [[res code] i]
-     (cond
-       (< i 10)
-       [(conj res (subs code 0 4))
-        (subs code 5)]
+  (let [code (str/replace code #"\s" "")]
+    (conj
+     ;; 4-character segments
+     (mapv #(subs code (* 4 %) (* 4 (inc %))) (range 10))
+     ;; one 3-char segment
+     (subs code 40 43)
+     ;; 2 char checksum
+     (subs code 43))))
 
-       (= i 10)
-       [(conj res (subs code 0 3))
-        (subs code 3)]
-
-       (= i 11)
-       (conj res (str (first code) (last code)))))
-   [[] code]
-   (range 12)))
-
-(defn segments->code [segments]
-  (reduce
-   (fn [s [seg idx]]
-     (if (= idx 11)
-       (str s (first seg) " " (last seg))
-       (let [s (str s seg)]
-         (cond
-           (> idx 10)
-           s
-
-           (= 3 (mod idx 4))
-           (str s "\n")
-
-           (< idx 10)
-           (str s " ")
-
-           :else
-           s))))
-   ""
-   (map vector segments (range))))
+(defn partition-str-all [n ^String str]
+  (let [len (.length str)]
+    (loop [idx 0
+           res []]
+      (if (< (* (inc idx) n) len)
+        (recur (inc idx)
+               (conj res (subs str (* idx n) (* (inc idx) n))))
+        (conj res (subs str (* idx n)))
+        ))))
 
 (defn decode-segment [seg]
   (map-indexed (fn [idx ch] (+ (dec-cipher ch) idx)) seg))
@@ -115,39 +74,35 @@
 (defn bits->num [bits]
   (reduce (fn [n b] (+ (bit-shift-left n 1) b)) 0 bits))
 
-(defn num->bits
-  ([num]
-   (num->bits 5))
-  ([num digits]
-   (second
-    (reduce (fn [[n bs] _]
-              (let [b (mod n 2)]
-                [(bit-shift-right (- n b) 1) (cons b bs)]))
-            [num []] (range digits)))))
-
-(defn digit->bcd [d]
-  (mapv #(if (= 0 (bit-and % d)) 0 1) [8 4 2 1]))
+(defn num->bits [num digits]
+  (second
+   (reduce (fn [[n bs] _]
+             (let [b (mod n 2)]
+               [(bit-shift-right (- n b) 1) (cons b bs)]))
+           [num []] (range digits))))
 
 (defn number->bcd [n]
   (let [u (mod n 10)
         t (mod (/ (- n u) 10) 10)
         h (mod (/ (- n t u) 100) 10)]
-    (mapv digit->bcd [(long u) (long t) (long h)])))
+    (mapv #(num->bits % 4) [(long u) (long t) (long h)])))
 
-(def world-state
+(def world->state
   {:locked [0 0 0]
    :closed [0 1 0]
    :open   [0 0 1]
    :done   [1 0 1]})
 
+(def state->world (into {} (map (juxt val key)) world->state))
+
 (defn world-bits [{:keys [items state]}]
   (concat
    (map (fn [i]
           (if (contains? items i) 1 0))
-        [:rod :cape :water :map])
-   (world-state state (world-state :locked))))
+        world-item-names)
+   (world->state state (world-state :locked))))
 
-(defn edn->code [edn]
+(defn edn->nums [edn]
   (let [{:keys [arrows keys coins items aphrodite popolon active]} edn
         [[au0 au1 au2 au3] [at0 at1 at2 at3] [ah0 ah1 ah2 ah3]] (number->bcd arrows)
         [[ku0 ku1 ku2 ku3] [kt0 kt1 kt2 kt3] [kh0 kh1 kh2 kh3]] (number->bcd keys)
@@ -160,81 +115,179 @@
                                                 (world-bits (get edn (keyword (str "world-" (inc i))))))
                                               (range 10))
         items (map (fn [i] (if (contains? items i) 1 0)) item-names)]
-    (encode
-     (concat
-      (map bits->num
-           (concat [[at0 at1 at2 at3 au0]
-                    [au1 au2 au3 0 0]
-                    [0 0 ah0 ah1 ah2]
-                    [ah3 ct0 ct1 ct2 ct3]
+    (concat
+     (map bits->num
+          (concat [[at0 at1 at2 at3 au0]
+                   [au1 au2 au3 0 0]
+                   [0 0 ah0 ah1 ah2]
+                   [ah3 ct0 ct1 ct2 ct3]
 
-                    [cu0 cu1 cu2 cu3 0]
-                    [0 0 0 ch0 ch1]
-                    [ch2 ch3 kt0 kt1 kt2]
-                    [kt3 ku0 ku1 ku2 ku3]
+                   [cu0 cu1 cu2 cu3 0]
+                   [0 0 0 ch0 ch1]
+                   [ch2 ch3 kt0 kt1 kt2]
+                   [kt3 ku0 ku1 ku2 ku3]
 
-                    [0 0 0 0 kh0]
-                    [kh1 kh2 kh3 0 0]
-                    (take 5 ea)
-                    (concat (drop 5 ea) (take 2 va))
+                   [0 0 0 0 kh0]
+                   [kh1 kh2 kh3 0 0]
+                   (take 5 ea)
+                   (concat (drop 5 ea) (take 2 va))
 
-                    (take 5 (drop 2 va))
-                    (cons (last va) (take 4 ep))
-                    (concat (drop 4 ep) (take 1 vp))
-                    (take 5 (drop 1 vp))
-                    ;;----------------------------------------------
-                    (concat (drop 6 vp) [0 0 0])
-                    (concat (take 4 w1) [0])
-                    (concat (drop 4 w1) (take 2 w2))
-                    (concat (drop 2 (take 2 w2)) [0] (take 2 (drop 4 w2)))
+                   (take 5 (drop 2 va))
+                   (cons (last va) (take 4 ep))
+                   (concat (drop 4 ep) (take 1 vp))
+                   (take 5 (drop 1 vp))
+                   ;;----------------------------------------------
+                   (concat (drop 6 vp) [0 0 0])
+                   (concat (take 4 w1) [0])
+                   (concat (drop 4 w1) (take 2 w2))
+                   (concat (drop 2 (take 2 w2)) [0] (take 2 (drop 4 w2)))
 
-                    (cons (last w2) (take 4 w3))
-                    (concat [0] (drop 4 w3) (take 1 w4))
-                    (concat (take 3 (drop 1 w4)) [0] (take 1 (drop 4 w4)))
-                    (concat (drop 5 w4) (take 3 w5))
+                   (cons (last w2) (take 4 w3))
+                   (concat [0] (drop 4 w3) (take 1 w4))
+                   (concat (take 3 (drop 1 w4)) [0] (take 1 (drop 4 w4)))
+                   (concat (drop 5 w4) (take 3 w5))
 
-                    (concat (take 1 (drop 3 w5)) [0] (drop 4 w5))
-                    (concat [0] (take 4 w6))
-                    (concat (drop 4 w6) (take 2 w7))
-                    (concat (take 2 (drop 2 w7)) [0] (take 2 (drop 4 w7)))
+                   (concat (take 1 (drop 3 w5)) [0] (drop 4 w5))
+                   (concat [0] (take 4 w6))
+                   (concat (drop 4 w6) (take 2 w7))
+                   (concat (take 2 (drop 2 w7)) [0] (take 2 (drop 4 w7)))
 
-                    (concat (drop 6 w7) (take 4 w8))
-                    (concat [0] (drop 4 w8) (take 1 w9))
-                    (concat (take 3 (drop 1 w9)) [0] (take 1 (drop 4 w9)))
-                    (concat (drop 5 w9) (take 3 w10))
-                    ;;----------------------------------------------
+                   (concat (drop 6 w7) (take 4 w8))
+                   (concat [0] (drop 4 w8) (take 1 w9))
+                   (concat (take 3 (drop 1 w9)) [0] (take 1 (drop 4 w9)))
+                   (concat (drop 5 w9) (take 3 w10))
+                   ;;----------------------------------------------
 
-                    (concat (drop 3 w10) [0])
-                    (take 5 items)
-                    [(nth items 5) 0 0 0 0]]
+                   (concat (drop 3 w10) [0])]
+                  (partition 5 items)
+                  [(concat (drop (- (count items) 4) items) [0])]
 
-                   (partition 5 (drop 6 items))
-                   [(concat (drop (- (count items) 4) items) [0])]
+                  [[(if (= active :popolon) 1 0)
+                    (if (:revived? popolon) 0 1)
+                    (if (:revived? aphrodite) 0 1)
+                    (if (:alive? popolon) 1 0)
+                    (if (:alive? aphrodite) 1 0)]])))))
 
-                   [[(if (= :active :popolon) 1 0)
-                     (if (:revived? popolon) 0 1)
-                     (if (:revived? aphrodite) 0 1)
-                     (if (:alive? popolon) 1 0)
-                     (if (:alive? aphrodite) 1 0)]]))))))
+(defn edn->code [edn]
+  (encode (edn->nums edn)))
+
+(def code-spec
+  `[[:arrows1 :int 4]
+    [:arrows0 :int 4]
+    [:_ :pad 4]
+    [:arrows2 :int 4]
+    [:coins1 :int 4]
+    [:coins0 :int 4]
+    [:_ :pad 4]
+    [:coins2 :int 4]
+    [:keys1 :int 4]
+    [:keys0 :int 4]
+    [:_ :pad 4]
+    [:keys2 :int 4]
+    [:_ :pad 2]
+    [:exp-aphrodite :int 8]
+    [:vit-aphrodite :int 8]
+    [:exp-popolon :int 8]
+    [:vit-popolon :int 8]
+    [:_ :pad 3]
+    ~@(for [i (range 1 11)]
+        [[:world-state i] :bitmap 8])
+    [:items :bitmap 45]
+    [:active :bitmap 1]
+    [:popolon-revived :bitmap 1]
+    [:aphrodite-revived :bitmap 1]
+    [:popolon-alive :bitmap 1]
+    [:aphrodite-alive :bitmap 1]
+    ]
+  )
+
+(defn item-set [bits item-names]
+  (into #{} (filter some?) (map (fn [bit n] (when (= 1 bit) n)) bits item-names)))
+
+(defn code->edn [code]
+  (let [bits (mapcat #(num->bits % 5) (decode code))]
+    (let [m (second
+             (reduce
+              (fn [[bits res :as acc] [name type len]]
+                (case type
+                  :pad    [(drop len bits) res]
+                  :bitmap [(drop len bits) (assoc res name (take len bits))]
+                  :int    [(drop len bits) (assoc res name (bits->num (take len bits)))]))
+              [bits {}]
+              code-spec))]
+      (into
+       {:arrows    (+ (* 100 (:arrows2 m)) (* 10 (:arrows1 m)) (:arrows0 m))
+        :coins     (+ (* 100 (:coins2 m)) (* 10 (:coins1 m)) (:coins0 m))
+        :keys      (+ (* 100 (:keys2 m)) (* 10 (:keys1 m)) (:keys0 m))
+        :active    (if (= [1] (:active m)) :popolon :aphrodite)
+        :aphrodite {:exp      (:exp-aphrodite m)
+                    :vit      (:vit-aphrodite m)
+                    :alive?   (= [1] (:aphrodite-alive m))
+                    :revived? (= [0] (:aphrodite-revived m))}
+        :popolon   {:exp      (:exp-popolon m)
+                    :vit      (:vit-popolon m)
+                    :alive?   (= [1] (:popolon-alive m))
+                    :revived? (= [0] (:popolon-revived m))}
+        :items     (item-set (:items m) item-names)}
+       (keep (fn [wnum]
+               (let [wbits (get m [:world-state wnum])]
+                 (when (some #{1} wbits)
+                   [(keyword (str "world-" wnum))
+                    {:state (state->world (drop 5 wbits))
+                     :items (item-set wbits world-item-names)}]))))
+       (range 1 11)))))
+
+(comment
+  (println
+   (str
+    "--------------------------------\n"
+    (edn->code {:arrows 459
+                :coins 32
+                :keys 23
+                :active :popolon
+                :aphrodite {:exp 0
+                            :vit 8
+                            :alive? true
+                            :revived? false}
+                :popolon {:exp 0
+                          :vit 16 ;; you start with 8, each key grants +8
+                          :alive? true
+                          :revived? false}
+                :items #{:arrows :ceramic-arrows :mines :magnifying-glass
+                         :necklace :helmet :shoes :halo
+                         :pendant :earrings :bible
+                         :harp :bronze-shield}
+                })))
+
+
+
+  (code->segments "UR3F UR3F UR4F 423R
+UR3F UR3F UR3F UR3F
+UR3F UH3F URS3 E")
+
+  (decode-segment "423R")
+
+
+  (edn->code
+   (code->edn
+    "0GUU 4RRU UR3F 4R37
+UR2F UR3F UR3F UR3F
+U1T2 KH4N 7RL2 3")))
 
 (println
- "--------------------------------\n"
- (edn->code {:keys 123
-             :arrows 987
-             :coins 543
-             :active :aphrodite
-             :aphrodite {:exp 8
-                         :vit 32
+ (edn->code {:arrows 459
+             :coins 32
+             :keys 23
+             :active :popolon
+             :aphrodite {:exp 0
+                         :vit 8
                          :alive? true
                          :revived? false}
-             :popolon {:exp 8
-                       :vit 40
+             :popolon {:exp 0
+                       :vit 16 ;; you start with 8, each key grants +8
                        :alive? true
                        :revived? false}
-             :items #{:arrows :vase :fire :mines :magnifying-glass :cross :great-key
-                      :necklace :crown :helmet :oar :shoes :doll :robe :bell :halo :candle :armor}
-             :world-1 {:items #{:rod :cape}
-                       :state :open}
-             :world-2 {:items #{:map :holy-water}
-                       :state :open}
-             :world-3 {:state :closed}}))
+             :items #{:arrows :ceramic-arrows :mines :magnifying-glass
+                      :necklace :helmet :shoes :halo
+                      :pendant :earrings :bible
+                      :harp :bronze-shield}}))
