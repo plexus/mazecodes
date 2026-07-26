@@ -1,4 +1,4 @@
-(ns mazecodes.core
+(ns mazecodes
   "Encode/decode Maze of Galious 'passwords' (save codes)"
   (:require [clojure.string :as str]))
 
@@ -45,8 +45,7 @@
       (if (< (* (inc idx) n) len)
         (recur (inc idx)
                (conj res (subs str (* idx n) (* (inc idx) n))))
-        (conj res (subs str (* idx n)))
-        ))))
+        (conj res (subs str (* idx n)))))))
 
 (defn decode-segment [seg]
   (map-indexed (fn [idx ch] (+ (dec-cipher ch) idx)) seg))
@@ -54,8 +53,12 @@
 (defn encode-segment [seg]
   (apply str (map-indexed (fn [idx i] (enc-cipher (- i idx))) seg)))
 
+(defn to-hex [i]
+  #?(:clj (Long/toHexString i)
+     :cljs (.toString i 16)))
+
 (defn checksum [chars]
-  (let [hex (Long/toHexString (apply + (map checksum-cipher chars)))]
+  (let [hex (to-hex (apply + (map checksum-cipher chars)))]
     (str/upper-case (subs hex (- (count hex) 2)))))
 
 (defn decode [code]
@@ -100,7 +103,7 @@
    (map (fn [i]
           (if (contains? items i) 1 0))
         world-item-names)
-   (world->state state (world-state :locked))))
+   (world->state (or state :locked))))
 
 (defn edn->nums [edn]
   (let [{:keys [arrows keys coins items aphrodite popolon active]} edn
@@ -197,9 +200,7 @@
     [:popolon-revived :bitmap 1]
     [:aphrodite-revived :bitmap 1]
     [:popolon-alive :bitmap 1]
-    [:aphrodite-alive :bitmap 1]
-    ]
-  )
+    [:aphrodite-alive :bitmap 1]])
 
 (defn item-set [bits item-names]
   (into #{} (filter some?) (map (fn [bit n] (when (= 1 bit) n)) bits item-names)))
@@ -236,58 +237,3 @@
                     {:state (state->world (drop 5 wbits))
                      :items (item-set wbits world-item-names)}]))))
        (range 1 11)))))
-
-(comment
-  (println
-   (str
-    "--------------------------------\n"
-    (edn->code {:arrows 459
-                :coins 32
-                :keys 23
-                :active :popolon
-                :aphrodite {:exp 0
-                            :vit 8
-                            :alive? true
-                            :revived? false}
-                :popolon {:exp 0
-                          :vit 16 ;; you start with 8, each key grants +8
-                          :alive? true
-                          :revived? false}
-                :items #{:arrows :ceramic-arrows :mines :magnifying-glass
-                         :necklace :helmet :shoes :halo
-                         :pendant :earrings :bible
-                         :harp :bronze-shield}
-                })))
-
-
-
-  (code->segments "UR3F UR3F UR4F 423R
-UR3F UR3F UR3F UR3F
-UR3F UH3F URS3 E")
-
-  (decode-segment "423R")
-
-
-  (edn->code
-   (code->edn
-    "0GUU 4RRU UR3F 4R37
-UR2F UR3F UR3F UR3F
-U1T2 KH4N 7RL2 3")))
-
-(println
- (edn->code {:arrows 459
-             :coins 32
-             :keys 23
-             :active :popolon
-             :aphrodite {:exp 0
-                         :vit 8
-                         :alive? true
-                         :revived? false}
-             :popolon {:exp 0
-                       :vit 16 ;; you start with 8, each key grants +8
-                       :alive? true
-                       :revived? false}
-             :items #{:arrows :ceramic-arrows :mines :magnifying-glass
-                      :necklace :helmet :shoes :halo
-                      :pendant :earrings :bible
-                      :harp :bronze-shield}}))

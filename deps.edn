@@ -1,5 +1,6 @@
 {:paths ["src" "test" "resources"]
- :deps {org.clojure/clojure {:mvn/version "1.12.5"}}
+ :deps {org.clojure/clojure {:mvn/version "1.12.5"}
+        io.github.babashka/sci.nrepl {:mvn/version "0.0.2"}}
  :aliases
  {:dev
   {}

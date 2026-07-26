@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang=en>
+  <head>
+    <meta charset=utf-8>
+    <style>
+      * {box-sizing: border-box;}
+      body { font-family: monospace; font-weight: 800; font-size: 18pt; display: flex; flex-direction: column; gap: 1rem; }
+      section { position: relative; width: 736px }
+      #arrows-coins-keys { display: flex ; gap: 2rem; justify-content: center;}
+      #items { height: 199px; }
+      #items img { position: absolute; }
+      #items > div { position: absolute; display: grid; grid-template-columns: repeat(10, 1fr);}
+      #items input { position: relative; z-index: -9999; }
+      #items label {
+        width: 73.6px;
+        height: 66.3px;
+        background-color: rgba(200, 200, 200, 50%);
+      }
+      #items label:has(input:checked) {
+        background-color: rgba(0, 0, 0, 0%);
+      }
+      #items label:has(input:focus) {
+        border: 5px solid rgba(200, 100, 100, 90%);
+        border-radius: 5px;
+      }
+      #buttons { text-align: center; }
+      textarea { width: 736px; height: 199px; font-size: 30pt; font-family: monospace; padding-left: 3em; padding-top: 0.5em}
+    </style>
+  </head>
+  <body>
+    <section id=arrows-coins-keys>
+      <label>Arrows x <input id=arrows type=number min=0 max=999 value=0></input></label>
+      <label>Coins x <input id=coins type=number min=0 max=999 value=0></input></label>
+      <label>Keys x <input id=keys type=number min=0 max=999 value=0></input></label>
+    </section>
+    <section id=items>
+      <img src="images/items.png"></img>
+      <div>
+        <label data-item=necklace><input type=checkbox></input></label>
+        <label data-item=crown><input type=checkbox></input></label>
+        <label data-item=helmet><input type=checkbox></input></label>
+        <label data-item=oar><input type=checkbox></input></label>
+        <label data-item=shoes><input type=checkbox></input></label>
+        <label data-item=doll><input type=checkbox></input></label>
+        <label data-item=robe><input type=checkbox></input></label>
+        <label data-item=bell><input type=checkbox></input></label>
+        <label data-item=halo><input type=checkbox></input></label>
+        <label data-item=candle><input type=checkbox></input></label>
+        <label data-item=armor><input type=checkbox></input></label>
+        <label data-item=carpet><input type=checkbox></input></label>
+        <label data-item=helm><input type=checkbox></input></label>
+        <label data-item=lamp><input type=checkbox></input></label>
+        <label data-item=vase><input type=checkbox></input></label>
+        <label data-item=pendant><input type=checkbox></input></label>
+        <label data-item=earrings><input type=checkbox></input></label>
+        <label data-item=bracelet><input type=checkbox></input></label>
+        <label data-item=ring><input type=checkbox></input></label>
+        <label data-item=bible><input type=checkbox></input></label>
+        <label data-item=harp><input type=checkbox></input></label>
+        <label data-item=triangle><input type=checkbox></input></label>
+        <label data-item=trumpet-shell><input type=checkbox></input></label>
+        <label data-item=pitcher><input type=checkbox></input></label>
+        <label data-item=saber><input type=checkbox></input></label>
+        <label data-item=dagger><input type=checkbox></input></label>
+        <label data-item=feather><input type=checkbox></input></label>
+        <label data-item=golden-shield><input type=checkbox></input></label>
+        <label data-item=bread-and-water><input type=checkbox></input></label>
+        <label data-item=salt><input type=checkbox></input></label>
+      </div>
+    </section>
+    <section id=buttons>
+      <button id=write-btn>↓ Make code</button>
+      <button id=read-btn>Read code ↑</button>
+    </section>
+    <section id=code>
+      <textarea></textarea>
+    </section>
+    <script>var SCITTLE_NREPL_WEBSOCKET_PORT = 1340;</script>
+    <script src="https://cdn.jsdelivr.net/npm/scittle@0.8.32/dist/scittle.js" type="application/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/scittle@0.8.32/dist/scittle.nrepl.js" type="application/javascript"></script>
+    <script src="mazecodes.cljc" type="application/x-scittle"></script>
+    <script src="mazecodes_ui.cljc" type="application/x-scittle">
+  </body>
+</html>

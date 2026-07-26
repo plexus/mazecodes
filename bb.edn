@@ -1,1 +1,2 @@
-{:deps {com.lambdaisland/launchpad {:mvn/version "0.53.238-alpha"}}}
+{:deps {com.lambdaisland/launchpad {:mvn/version "0.53.238-alpha"}
+        io.github.babashka/sci.nrepl {:mvn/version "0.0.2"}}}
