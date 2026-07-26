@@ -90,6 +90,9 @@
         h (mod (/ (- n t u) 100) 10)]
     (mapv #(num->bits % 4) [(long u) (long t) (long h)])))
 
+(defn bcd->number [u t h]
+  (+ (bits->num u) (* (bits->num t) 10) (* (bits->num h) 100)))
+
 (def world->state
   {:locked [0 0 0]
    :closed [0 1 0]
@@ -204,6 +207,36 @@
 
 (defn item-set [bits item-names]
   (into #{} (filter some?) (map (fn [bit n] (when (= 1 bit) n)) bits item-names)))
+
+#_(defn code->edn [code]
+    (let [nums (decode code)
+          [[at0 at1 at2 at3 au0]
+           [au1 au2 au3 _ _]
+           [_ _ ah0 ah1 ah2]
+           [ah3 ct0 ct1 ct2 ct3]
+
+           [cu0 cu1 cu2 cu3 _]
+           [_ _ _ ch0 ch1]
+           [ch2 ch3 kt0 kt1 kt2]
+           [kt3 ku0 ku1 ku2 ku3]
+
+           [_ _ _ _ kh0]
+           [kh1 kh2 kh3 _ _]
+           & bitgroups] (map num->bits nums)
+          bits (into [] cat bitgroups)]
+      {:keys (bcd->number [ku0 ku1 ku2 ku3]
+                          [kt0 kt1 kt2 kt3]
+                          [kh0 kh1 kh2 kh3])
+       :arrows (bcd->number [au0 au1 au2 au3]
+                            [at0 at1 at2 at3]
+                            [ah0 ah1 ah2 ah3])
+       :coins (bcd->number [cu0 cu1 cu2 cu3]
+                           [ct0 ct1 ct2 ct3]
+                           [ch0 ch1 ch2 ch3])
+       :aphrodite {:exp (bits->num (take 8 bits))
+                   :vit (bits->num (subvec bits 8 16))}
+       :popolon {:exp (bits->num (subvec bits 16 24))
+                 :vit (bits->num (subvec bits 24 32))}}))
 
 (defn code->edn [code]
   (let [bits (mapcat #(num->bits % 5) (decode code))]
