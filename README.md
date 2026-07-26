@@ -31,6 +31,25 @@ UR2F UR3F UR3F UR3F
 U1T2 KH4N 7RL2 3") ;;=> {:arrows 459, ...}
 ```
 
+## UI
+
+```
+➜ bb
+Babashka v1.12.218
+Type :repl/help for help
+user=> (require '[sci.nrepl.browser-server :as nrepl])
+  #_=> (nrepl/start! {:nrepl-port 1339 :websocket-port 1340}) 
+```
+
+```
+cd public
+python3 -m http.server
+```
+
+## Links
+
+http://fcfantasy.cn/maps/msx/the_maze_of_galious_knightmare_2.png
+
 ## License
 
 Copyright &copy; 2019-2026 Arne Brasseur
